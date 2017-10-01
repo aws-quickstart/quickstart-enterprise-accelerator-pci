@@ -13,6 +13,7 @@ Metadata:
       - pNotifyEmail
       - pEC2KeyPairBastion
       - pEC2KeyPair
+      - pCreateApplicationStack	  
       - pSupportsConfig
       - pAvailabilityZoneA
       - pAvailabilityZoneB
@@ -38,6 +39,8 @@ Metadata:
         default: Second Availability zone
       pVPCTenancy:
         default: Instance tenancy
+      pCreateApplicationStack:
+        default: Create Applications
       QSS3BucketName:
         default: Quick Start S3 Bucket Name
       QSS3KeyPrefix:
@@ -84,6 +87,13 @@ Parameters:
     - 'Yes'
     - 'No'
     Default: 'No'
+    Type: String
+  pCreateApplicationStack:
+    Description: 'Create webservers and autoscaling groups'
+    AllowedValues:
+    - 'Yes'
+    - 'No'
+    Default: 'Yes'
     Type: String
   pAvailabilityZoneA:
     Description: Availability Zone 1
@@ -300,6 +310,10 @@ Conditions:
     !Equals
     - !Ref pSupportsConfig
     - 'Yes'
+  CreateApplicationStack:
+    !Equals
+    - !Ref pCreateApplicationStack
+    - 'Yes'
   LaunchAsDedicatedInstance:
     !Equals
     - !Ref pVPCTenancy
@@ -491,6 +505,7 @@ Resources:
           - Value
   ApplicationTemplate:
     Type: AWS::CloudFormation::Stack
+    Condition: CreateApplicationStack
     DependsOn: ProductionVpcTemplate
     Properties:
       TemplateURL:
@@ -599,11 +614,13 @@ Outputs:
       - ManagementVpcTemplate
       - Outputs.rBastionInstanceIP
   LandingPageURL:
+    Condition: CreateApplicationStack
     Value:
       !GetAtt
       - ApplicationTemplate
       - Outputs.LandingPageURL
   WebsiteURL:
+    Condition: CreateApplicationStack
     Value:
       !GetAtt
       - ApplicationTemplate
