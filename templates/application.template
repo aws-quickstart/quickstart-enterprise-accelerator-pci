@@ -45,7 +45,6 @@ Metadata:
       Parameters:
       - pDBName
       - pDBUser
-      - pDBPassword
       - pDBClass
       - pDBAllocatedStorage
     - Label:
@@ -119,10 +118,6 @@ Parameters:
     Type: String
   pDBUser:
     Description: Username of DB Instance
-    Type: String
-  pDBPassword:
-    Description: Password of DB Instance
-    NoEcho: true
     Type: String
   pDBClass:
     Description: Instance class of RDS instance
@@ -200,6 +195,16 @@ Conditions:
     - !Ref pSupportsGlacier
     - 'true'
 Resources:
+  #https://aws.amazon.com/blogs/security/how-to-create-and-retrieve-secrets-managed-in-aws-secrets-manager-using-aws-cloudformation-template/
+  rDatabaseCredentialsSecretsmanager:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the database credentials for my RDS instance'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "testuser"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
   rS3ELBAccessLogs:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -225,10 +230,7 @@ Resources:
                 - aws
           Principal:
             AWS:
-              !FindInMap
-              - elbMap
-              - !Ref AWS::Region
-              - ELB
+            - !FindInMap [elbMap, !Ref 'AWS::Region', ELB]
           Action:
           - s3:PutObject
   rSecurityGroupWeb:
@@ -433,6 +435,33 @@ Resources:
       SubnetIds:
       - !Ref pDBPrivateSubnetA
       - !Ref pDBPrivateSubnetB
+  rParameterGroupMySQL:
+    Type: "AWS::RDS::DBParameterGroup"
+    Properties:
+      Parameters:
+        #https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_LogAccess.Concepts.MySQL.html#USER_LogAccess.MySQLDB.PublishtoCloudWatchLogs
+        general_log: 1
+        slow_query_log: 1
+        log_output: FILE
+      Family: "mysql5.6"
+      Description: "MySQL Parameter Group"
+  rOptionGroupMySQL:
+    Type: AWS::RDS::OptionGroup
+    DeletionPolicy: Retain
+    Properties:
+        EngineName: mysql
+        MajorEngineVersion: 5.6
+        OptionGroupDescription: "MySQL Audit Option Group"
+        OptionConfigurations:
+          #https://mariadb.com/kb/en/library/mariadb-audit-plugin-system-variables/#server_audit_file_rotate_size
+          - OptionName: MARIADB_AUDIT_PLUGIN
+            OptionSettings:
+            - Name: SERVER_AUDIT_FILE_ROTATE_SIZE
+              Value: '100000000'
+            - Name: SERVER_AUDIT_FILE_ROTATIONS
+              Value: '100'
+            - Name: SERVER_AUDIT_EVENTS
+              Value: "CONNECT,QUERY_DCL,QUERY_DDL,QUERY_DML,TABLE"
   rRDSInstanceMySQL:
     Type: AWS::RDS::DBInstance
     DependsOn:
@@ -440,11 +469,19 @@ Resources:
     - rSecurityGroupRDS
     Properties:
       DBName: !Ref pDBName
+      DBParameterGroupName: !Ref rParameterGroupMySQL
+      EnableIAMDatabaseAuthentication: true
+      EnableCloudwatchLogsExports:
+        - "error"
+        - "general"
+        - "slowquery"
+        - "audit"
       Engine: MySQL
       MultiAZ: true
+      OptionGroupName: !Ref rOptionGroupMySQL
       StorageEncrypted: true
-      MasterUsername: !Ref pDBUser
-      MasterUserPassword: !Ref pDBPassword
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref rDatabaseCredentialsSecretsmanager, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref rDatabaseCredentialsSecretsmanager, ':SecretString:password}}' ]]
       DBInstanceClass: !Ref pDBClass
       AllocatedStorage: !Ref pDBAllocatedStorage
       VPCSecurityGroups:
@@ -749,6 +786,16 @@ Resources:
             Action:
             - ec2:DescribeVolumes
             Resource: '*'
+      - PolicyName: DatabaseCredentialSecrets
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Sid: GetDatabaseCredentials
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+            - !Ref rDatabaseCredentialsSecretsmanager 
   rAppInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -795,19 +842,79 @@ Resources:
         install_wordpress:
           packages:
             yum:
-              php: []
-              php-mysql: []
-              mysql: []
-              httpd: []
+              php70: []
+              php70-mysqlnd: []
+              mysql56-server: []
+              httpd24: []
           sources:
             /var/www/html: https://wordpress.org/latest.tar.gz
+            /var/www/html/wordpress: https://docs.aws.amazon.com/aws-sdk-php/v3/download/aws.zip
           files:
             /var/www/html/wordpress/wp-config.php:
               content: !Sub |
                 <?php
+                require '/var/www/html/wordpress/aws-autoloader.php';
+
+                use Aws\SecretsManager\SecretsManagerClient; 
+                use Aws\Exception\AwsException;
+
+                // Create a Secrets Manager Client 
+                $client = new SecretsManagerClient([
+                    'version' => 'latest',
+                    'region' => '${AWS::Region}',
+                ]);
+
+                $secretName = '${rDatabaseCredentialsSecretsmanager}';
+                $result = '';
+                try {
+                    $result = $client->getSecretValue([
+                        'SecretId' => $secretName,
+                    ]);
+
+                } catch (AwsException $e) {
+                    $error = $e->getAwsErrorCode();
+                    if ($error == 'DecryptionFailureException') {
+                        // Secrets Manager can't decrypt the protected secret text using the provided AWS KMS key.
+                        // Handle the exception here, and/or rethrow as needed.
+                        throw $e;
+                    }
+                    if ($error == 'InternalServiceErrorException') {
+                        // An error occurred on the server side.
+                        // Handle the exception here, and/or rethrow as needed.
+                        throw $e;
+                    }
+                    if ($error == 'InvalidParameterException') {
+                        // You provided an invalid value for a parameter.
+                        // Handle the exception here, and/or rethrow as needed.
+                        throw $e;
+                    }
+                    if ($error == 'InvalidRequestException') {
+                        // You provided a parameter value that is not valid for the current state of the resource.
+                        // Handle the exception here, and/or rethrow as needed.
+                        throw $e;
+                    }
+                    if ($error == 'ResourceNotFoundException') {
+                        // We can't find the resource that you asked for.
+                        // Handle the exception here, and/or rethrow as needed.
+                        throw $e;
+                    }
+                }
+                // Decrypts secret using the associated KMS CMK.
+                // Depending on whether the secret is a string or binary, one of these fields will be populated.
+                $secret = '';
+                if (isset($result['SecretString'])) {
+                    $secret = $result['SecretString'];
+                } else {
+                    $secret = base64_decode($result['SecretBinary']);
+                }                
+
+                $secretjson = json_decode($secret,true);
+                $username=$secretjson['username'];
+                $password=$secretjson['password'];
+
+                define('DB_USER', $username);
+                define('DB_PASSWORD', $password);
                 define('DB_NAME', '${pDBName}');
-                define('DB_USER', '${pDBUser}');
-                define('DB_PASSWORD', '${pDBPassword}');
                 define('DB_HOST', '${rRDSInstanceMySQL.Endpoint.Address}');
                 define('FORCE_SSL_ADMIN', true);
                 if (strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) { $_SERVER['HTTPS']='on'; }
@@ -1099,6 +1206,8 @@ Outputs:
     Value: !Ref rSecurityGroupApp
   rSecurityGroupRDS:
     Value: !Ref rSecurityGroupRDS
+  rDBInstanceId:
+    Value: !Ref rRDSInstanceMySQL
   SurveyLink:
     Description: Please take a moment to complete the survey by clicking this link
     Value: https://aws.au1.qualtrics.com/SE/?SID=SV_55sYYdtY1NhTTgN&qs=${COMPLIANCE_SURVEY_LINK}
@@ -1106,4 +1215,18 @@ Outputs:
     Description: For assistance or questions regarding this quickstart please email
       compliance-accelerator@amazon.com
     Value: ''
+  rDBSecretsArn:
+    Description: Secrets Manager ARN containing Database Username and Password
+    Value: !Ref rDatabaseCredentialsSecretsmanager
+  rDatabaseURL:
+    Description: Database URL
+    Value: !GetAtt rRDSInstanceMySQL.Endpoint.Address
+  rDatabasePort:
+    Description: Database Port
+    Value: !GetAtt rRDSInstanceMySQL.Endpoint.Port 
+  rSecurityGroupAppInstance:
+    Description: Security group for Appserver Instances
+    Value: !Ref rSecurityGroupAppInstance
+  StackName:
+    Value: !Ref AWS::StackName
 ...

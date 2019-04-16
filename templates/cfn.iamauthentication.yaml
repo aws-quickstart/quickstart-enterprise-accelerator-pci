@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: RDS IAM Authentication IAM Policy and Database Account
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 180
+
+Parameters:
+  pDatabaseInstanceId:
+    Description: Database Instance Id
+    Type: String
+  pAppPrivateSubnetA:
+    Description: WebApp Subnet A
+    Type: AWS::EC2::Subnet::Id
+  pAppPrivateSubnetB:
+    Description: WebApp Subnet A
+    Type: AWS::EC2::Subnet::Id
+  pAppSecurityGroup:
+    Description: WebApp Security Group
+    Type: String
+  pDatabaseSecretsManagerArn:
+    Description: Database Secrets Manager Arn
+    Type: String
+  pDatabaseURL:
+    Description: Database URL
+    Type: String
+
+Resources:
+  RDSIAMAuthenticationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - sts:AssumeRole
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+
+  rDbInstanceIdLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - sts:AssumeRole
+      Policies:
+        - PolicyName: DescribeRDSInstances
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "rds:DescribeDBClusters"
+                  - "rds:DescribeDBInstances"
+                Resource:
+                  - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${pDatabaseInstanceId}"
+
+  rDBInstanceIdLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 45
+      Role: !GetAtt rDbInstanceIdLambdaRole.Arn
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./database-resource-id-custom-resource
+
+  #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-custom-resources-lambda-lookup-amiids.html#walkthrough-custom-resources-lambda-lookup-amiids-createfunction-createstack
+  rDbiResourceId:
+    Type: Custom::DatabaseResourceId
+    Properties:
+      ServiceToken: !GetAtt [ rDBInstanceIdLambda, Arn ]
+      DatabaseInstanceId: !Ref pDatabaseInstanceId
+
+  RDSIAMAuthenticationPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: "IAMDatabaseAuthenticationPolicy-sample_dba"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "rds-db:connect"
+            #https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.IAMPolicy.html
+            Resource: !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${rDbiResourceId.DbiResourceId}/sample_dba"
+      Roles: [!Ref RDSIAMAuthenticationRole]
+
+
+  RDSIAMAuthenticationFunction:
+    # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 45
+      Role: !GetAtt RDSIAMAuthenticationRole.Arn
+      CodeUri: ./dba-account-creation
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref pAppSecurityGroup
+        SubnetIds:
+          - !Ref pAppPrivateSubnetA
+          - !Ref pAppPrivateSubnetB 
+      Environment:
+        Variables:
+          DatabaseCredentialsSecretsArn: !Ref pDatabaseSecretsManagerArn
+          DatabaseEndpointURL: !Ref pDatabaseURL
+
+
+  VerifyIAMDatabaseAuthenticationFunction:
+    # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 45
+      Role: !GetAtt RDSIAMAuthenticationRole.Arn
+      CodeUri: ./verify-iam-database-authentication
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref pAppSecurityGroup
+        SubnetIds:
+          - !Ref pAppPrivateSubnetA
+          - !Ref pAppPrivateSubnetB
+      Environment:
+        Variables:
+          DatabaseUserName: sample_dba
+          DatabasePort: 3306
+          DatabaseEndpointURL: !Ref pDatabaseURL
+
+  DatabaseCredentialsSecretsResourcePolicyForRDSIAMAuthenticationFunction:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties:
+      SecretId:  !Ref pDatabaseSecretsManagerArn
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt RDSIAMAuthenticationRole.Arn
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: "*"
+
+Outputs:
+  rDatabaseResourceId:
+    Value: !GetAtt rDbiResourceId.DbiResourceId
+    Description: Database Resource Id

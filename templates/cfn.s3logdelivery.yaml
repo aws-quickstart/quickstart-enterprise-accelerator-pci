@@ -1,0 +1,171 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Database audit logs delivery to S3
+Parameters:
+  pDatabaseInstanceId:
+    Description: Database Instance Id
+    Type: String
+  pRetentionDaysCloudWatchLogs:
+    Type: Number
+    Default: 7
+  pSupportsGlacier:
+    Description: Determines whether this region supports Glacier (passed in from main
+      template)
+    Type: String
+    Default: 'true'
+Conditions:
+  SupportsGlacier:
+    !Equals
+    - !Ref pSupportsGlacier
+    - 'true'
+Resources:
+  rS3DatabaseLogsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      AccessControl: LogDeliveryWrite
+      LifecycleConfiguration:
+        Rules:
+        - Id: Transition90daysRetain7yrs
+          Status: Enabled
+          ExpirationInDays: 2555
+          Transition:
+            TransitionInDays: 90
+            StorageClass:
+              !If
+              - SupportsGlacier
+              - GLACIER
+              - STANDARD_IA
+      VersioningConfiguration:
+        Status: Enabled
+
+  rErrorDatabaseLogGroup: 
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      RetentionInDays: !Ref pRetentionDaysCloudWatchLogs
+
+  rErrorDatabaseLogStream: 
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName: !Ref rErrorDatabaseLogGroup
+
+  rErrorDatabaseLogDeliveryToS3ViaKinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt rS3DatabaseLogsBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 50
+        CompressionFormat: GZIP
+        Prefix: error
+        RoleARN: !GetAtt rFirehoseDeliveryRole.Arn
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref rErrorDatabaseLogGroup
+          LogStreamName: !Ref rErrorDatabaseLogStream
+
+  rAuditDatabaseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref pRetentionDaysCloudWatchLogs
+
+  rAuditLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref rAuditDatabaseLogGroup
+
+  rAuditDatabaseLogDeliveryToS3ViaKinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt rS3DatabaseLogsBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 50
+        CompressionFormat: GZIP
+        Prefix: audit
+        RoleARN: !GetAtt rFirehoseDeliveryRole.Arn
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref rAuditDatabaseLogGroup
+          LogStreamName: !Ref rAuditLogStream
+
+  rFirehoseDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version:                   2012-10-17
+        Statement:
+          - Sid:                   'FirehoseDeliveryRole'
+            Effect:                Allow
+            Principal:
+              Service:             firehose.amazonaws.com
+            Action:                'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+
+  FirehoseDeliveryPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: Firehose_Delivery_Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Resource:
+              - !Sub '${rS3DatabaseLogsBucket.Arn}'
+              - !Sub '${rS3DatabaseLogsBucket.Arn}/*'
+      Roles:
+        - !Ref rFirehoseDeliveryRole
+
+
+  rErrorDatabaseLogCloudWatchToKinesisFirehose:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties: 
+      DestinationArn: !GetAtt rErrorDatabaseLogDeliveryToS3ViaKinesisFirehose.Arn
+      FilterPattern: ""
+      LogGroupName: !Sub "/aws/rds/instance/${pDatabaseInstanceId}/error" 
+      RoleArn: !GetAtt rKinesisFirehoseLogsRole.Arn
+
+  rAuditDatabaseLogCloudWatchToKinesisFirehose:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      DestinationArn: !GetAtt rAuditDatabaseLogDeliveryToS3ViaKinesisFirehose.Arn
+      FilterPattern: ""
+      LogGroupName: !Sub "/aws/rds/instance/${pDatabaseInstanceId}/audit"
+      RoleArn: !GetAtt rKinesisFirehoseLogsRole.Arn
+
+  rKinesisFirehoseLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - firehose:PutRecord
+                  - firehose:PutRecords
+                Resource:
+                  - !GetAtt rErrorDatabaseLogDeliveryToS3ViaKinesisFirehose.Arn
+                  - !GetAtt rAuditDatabaseLogDeliveryToS3ViaKinesisFirehose.Arn
+

@@ -18,7 +18,6 @@ Metadata:
     - Label:
         default: 'Please provide the following parameter values:'
       Parameters:
-      - pDBPassword
       - pNotifyEmail
       - pEC2KeyPairBastion
       - pEC2KeyPair
@@ -31,10 +30,10 @@ Metadata:
       - QSS3BucketName
       - QSS3KeyPrefix
     ParameterLabels:
-      pDBPassword:
-        default: Database Password
       pNotifyEmail:
         default: Notification Email Address
+      pBastionCIDR:
+        default: SSH Bastion CIDR
       pEC2KeyPairBastion:
         default: Existing SSH Key for the Bastion Instance
       pEC2KeyPair:
@@ -52,21 +51,14 @@ Metadata:
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
 Parameters:
-  pDBPassword:
-    Description: Mixed alphanumeric and must be between 8 and 28 characters and contain
-      at least one capital letter
-    NoEcho: true
-    Type: String
-    MinLength: 8
-    MaxLength: 28
-    AllowedPattern: '[a-zA-Z0-9!^*\-_+]*'
-    ConstraintDescription: Can only contain alphanumeric characters or the following
-      special characters !^*-_+, between 8 and 28 characters
   pNotifyEmail:
     Description: Notification email address for security events (you will receive
       a confirmation email)
     Type: String
     Default: distlist@example.org
+  pBastionCIDR:
+    Description: SSH Bastion CIDR
+    Type: String
   pEC2KeyPairBastion:
     Description: The SSH key pair in your account to use for the bastion host login
     Type: AWS::EC2::KeyPair::KeyName
@@ -306,7 +298,7 @@ Resources:
         pRegionAZ1Name: !Ref pAvailabilityZoneA
         pRegionAZ2Name: !Ref pAvailabilityZoneB
         pProductionVPCName: Production VPC
-        pBastionSSHCIDR: 0.0.0.0/0
+        pBastionSSHCIDR: !Ref pBastionCIDR
         pDMZSubnetACIDR: 10.100.10.0/24
         pDMZSubnetBCIDR: 10.100.20.0/24
         pManagementCIDR: 10.10.0.0/16
@@ -365,7 +357,7 @@ Resources:
           - ProductionVpcTemplate
           - Outputs.rRouteTableProdPublic
         pProductionCIDR: 10.100.0.0/16
-        pBastionSSHCIDR: 0.0.0.0/0
+        pBastionSSHCIDR: !Ref pBastionCIDR
         pManagementCIDR: 10.10.0.0/16
         pManagementDMZSubnetACIDR: 10.10.1.0/24
         pManagementDMZSubnetBCIDR: 10.10.2.0/24
@@ -437,14 +429,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: ProductionVpcTemplate
     Properties:
-      TemplateURL:
-        !Sub
-        - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/application.template
-        - QSS3Region:
-            !If
-            - GovCloudCondition
-            - s3-us-gov-west-1
-            - s3
+      TemplateURL: application.template
       TimeoutInMinutes: 30
       Parameters:
         pSecurityAlarmTopic:
@@ -506,7 +491,6 @@ Resources:
           - AMZNLINUXHVM
         pDBUser: testuserdb
         pDBName: testDB
-        pDBPassword: !Ref pDBPassword
         pDBClass:
           !FindInMap
           - AWSAMIRegionMap
@@ -518,7 +502,7 @@ Resources:
           - CustomVariables
           - vResourceEnvironmentTagValue
           - Value
-        pBastionSSHCIDR: 0.0.0.0/0
+        pBastionSSHCIDR: !Ref pBastionCIDR
         pSupportsGlacier:
           !FindInMap
           - RegionServiceSupport
@@ -526,6 +510,47 @@ Resources:
           - Glacier
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  DatabaseLogDeliveryTemplate:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ApplicationTemplate
+    Properties:
+      TemplateURL: cfn.s3logdelivery.yaml
+      TimeoutInMinutes: 30
+      Parameters:
+        pDatabaseInstanceId: !GetAtt ApplicationTemplate.Outputs.rDBInstanceId
+        pSupportsGlacier:
+          !FindInMap
+          - RegionServiceSupport
+          - !Ref AWS::Region
+          - Glacier
+  IAMDatabaseAuthenticationTemplate:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ApplicationTemplate
+    Properties:
+      TemplateURL: .aws-sam/build/template.yaml
+      TimeoutInMinutes: 30
+      Parameters:
+        pDatabaseInstanceId: !GetAtt ApplicationTemplate.Outputs.rDBInstanceId
+        pAppPrivateSubnetA:
+          !GetAtt
+          - ProductionVpcTemplate
+          - Outputs.rAppPrivateSubnetA
+        pAppPrivateSubnetB:
+          !GetAtt
+          - ProductionVpcTemplate
+          - Outputs.rAppPrivateSubnetB
+        pAppSecurityGroup:
+          !GetAtt
+          - ApplicationTemplate
+          - Outputs.rSecurityGroupAppInstance
+        pDatabaseSecretsManagerArn:
+          !GetAtt
+          - ApplicationTemplate
+          - Outputs.rDBSecretsArn
+        pDatabaseURL:
+          !GetAtt
+          - ApplicationTemplate
+          - Outputs.rDatabaseURL
 Outputs:
   TemplateType:
     Value: Standard Multi-Tier Web Application
