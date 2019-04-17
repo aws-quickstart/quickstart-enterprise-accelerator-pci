@@ -7,6 +7,8 @@ export AWS_DEFAULT_REGION=us-west-2
 
 #aws s3api create-bucket --bucket ${BUCKET} --acl private --create-bucket-configuration LocationConstraint="$AWS_DEFAULT_REGION"
 
+pushd ../templates
+
 sam build --template cfn.iamauthentication.yaml #--use-container
 
 sam package \
@@ -21,3 +23,4 @@ sam deploy \
     --template-file packaged-main.template
      #--on-failure DO_NOTHING
 
+popd

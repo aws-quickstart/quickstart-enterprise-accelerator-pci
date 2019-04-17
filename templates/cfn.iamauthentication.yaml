@@ -73,7 +73,7 @@ Resources:
       Role: !GetAtt rDbInstanceIdLambdaRole.Arn
       Handler: app.lambda_handler
       Runtime: python3.7
-      CodeUri: ./database-resource-id-custom-resource
+      CodeUri: ../scripts/lambdas/database-resource-id-custom-resource
 
   #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-custom-resources-lambda-lookup-amiids.html#walkthrough-custom-resources-lambda-lookup-amiids-createfunction-createstack
   rDbiResourceId:
@@ -104,7 +104,7 @@ Resources:
     Properties:
       Timeout: 45
       Role: !GetAtt RDSIAMAuthenticationRole.Arn
-      CodeUri: ./dba-account-creation
+      CodeUri: ../scripts/lambdas/dba-account-creation
       Handler: app.lambda_handler
       Runtime: python3.7
       VpcConfig:
@@ -125,7 +125,7 @@ Resources:
     Properties:
       Timeout: 45
       Role: !GetAtt RDSIAMAuthenticationRole.Arn
-      CodeUri: ./verify-iam-database-authentication
+      CodeUri: ../scripts/lambdas/verify-iam-database-authentication
       Handler: app.lambda_handler
       Runtime: python3.7
       VpcConfig:

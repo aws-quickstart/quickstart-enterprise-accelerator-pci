@@ -850,15 +850,15 @@ Resources:
             /var/www/html: https://wordpress.org/latest.tar.gz
             /var/www/html/wordpress: https://docs.aws.amazon.com/aws-sdk-php/v3/download/aws.zip
           files:
-            /var/www/html/wordpress/wp-config.php:
+            /var/www/html/wordpress/secrets-manager-database-credentials.php:
               content: !Sub |
                 <?php
                 require '/var/www/html/wordpress/aws-autoloader.php';
 
-                use Aws\SecretsManager\SecretsManagerClient; 
+                use Aws\SecretsManager\SecretsManagerClient;
                 use Aws\Exception\AwsException;
 
-                // Create a Secrets Manager Client 
+                // Create a Secrets Manager Client
                 $client = new SecretsManagerClient([
                     'version' => 'latest',
                     'region' => '${AWS::Region}',
@@ -906,14 +906,20 @@ Resources:
                     $secret = $result['SecretString'];
                 } else {
                     $secret = base64_decode($result['SecretBinary']);
-                }                
+                }
 
                 $secretjson = json_decode($secret,true);
-                $username=$secretjson['username'];
-                $password=$secretjson['password'];
+                $database_username=$secretjson['username'];
+                $database_password=$secretjson['password'];
 
-                define('DB_USER', $username);
-                define('DB_PASSWORD', $password);
+                ?>
+            /var/www/html/wordpress/wp-config.php:
+              content: !Sub |
+                <?php
+                require '/var/www/html/wordpress/secrets-manager-database-credentials.php';
+
+                define('DB_USER', $database_username);
+                define('DB_PASSWORD', $database_password);
                 define('DB_NAME', '${pDBName}');
                 define('DB_HOST', '${rRDSInstanceMySQL.Endpoint.Address}');
                 define('FORCE_SSL_ADMIN', true);
