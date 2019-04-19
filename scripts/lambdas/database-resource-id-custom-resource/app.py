@@ -11,6 +11,16 @@ def lambda_handler(event, context):
         #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-code.html#cfn-lambda-function-code-cfnresponsemodule#w2ab1c21c10d183c21c17c11c13b5
         request_type=event['RequestType']
         logger.info("Request type %s",request_type)
+        if request_type=='Delete':
+            responseData = {}
+            cfnresponse.send(
+                event,
+                context,
+                cfnresponse.SUCCESS,
+                responseData
+            )
+            return cfnresponse.SUCCESS
+
         response = rds.describe_db_instances(
             DBInstanceIdentifier=event['ResourceProperties']['DatabaseInstanceId']
         )
