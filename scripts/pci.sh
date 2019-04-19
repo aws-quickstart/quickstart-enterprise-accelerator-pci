@@ -1,11 +1,11 @@
 #!/bin/bash
 set -Eeuox pipefail
 
-STACK_NAME=pci-quickstart-2
-BUCKET=jjjoy-pci-quickstart-5
-export AWS_DEFAULT_REGION=us-west-2
+STACK_NAME=STACK-NAME-HERE
+BUCKET=BUCKET-NAME-HERE
+export AWS_DEFAULT_REGION=us-east-1
 
-#aws s3api create-bucket --bucket ${BUCKET} --acl private --create-bucket-configuration LocationConstraint="$AWS_DEFAULT_REGION"
+#aws s3api create-bucket --bucket ${BUCKET} --acl private #--create-bucket-configuration LocationConstraint="$AWS_DEFAULT_REGION"
 
 pushd ../templates
 
