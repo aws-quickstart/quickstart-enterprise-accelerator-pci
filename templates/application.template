@@ -240,7 +240,7 @@ Resources:
       SecretId: !Ref rDatabaseCredentialSecret
       RotationLambdaARN: !GetAtt rDatabaseCredentialRotationApplication.Outputs.RotationLambdaARN
       RotationRules:
-        AutomaticallyAfterDays: 5
+        AutomaticallyAfterDays: 30
   #This is a Lambda Permission resource that grants Secrets Manager permission to invoke the function
   rDatabaseCredentialSecretLambdaInvokePermission:
     Type: AWS::Lambda::Permission
