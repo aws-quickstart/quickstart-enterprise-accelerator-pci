@@ -69,6 +69,7 @@ Resources:
   rDBInstanceIdLambda:
     Type: AWS::Serverless::Function
     Properties:
+      Description: Fetches the Database Resource ID required for IAM Database Authentication
       Timeout: 45
       Role: !GetAtt rDbInstanceIdLambdaRole.Arn
       Handler: app.lambda_handler
@@ -102,6 +103,7 @@ Resources:
     # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Type: AWS::Serverless::Function
     Properties:
+      Description: Creates database user for use with IAM Database Authentication
       Timeout: 45
       Role: !GetAtt RDSIAMAuthenticationRole.Arn
       CodeUri: ../scripts/lambdas/dba-account-creation
@@ -123,6 +125,7 @@ Resources:
     # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Type: AWS::Serverless::Function
     Properties:
+      Description: Verify IAM Database Authentication example
       Timeout: 45
       Role: !GetAtt RDSIAMAuthenticationRole.Arn
       CodeUri: ../scripts/lambdas/verify-iam-database-authentication
