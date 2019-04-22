@@ -553,7 +553,7 @@ Resources:
         pDatabaseSecretsManagerArn:
           !GetAtt
           - ApplicationTemplate
-          - Outputs.rDBSecretsArn
+          - Outputs.rDatabaseCredentialSecretArn
         pDatabaseURL:
           !GetAtt
           - ApplicationTemplate
