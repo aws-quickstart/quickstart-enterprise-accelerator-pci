@@ -198,6 +198,7 @@ Conditions:
 Resources:
   #https://aws.amazon.com/blogs/security/how-to-create-and-retrieve-secrets-managed-in-aws-secrets-manager-using-aws-cloudformation-template/
   #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-secretsmanager-rotationschedule.html
+  #https://docs.aws.amazon.com/secretsmanager/latest/userguide/integrating_cloudformation.html
   #This is a Secret resource with a randomly generated password in its SecretString JSON.
   rDatabaseCredentialSecret:
     Type: AWS::SecretsManager::Secret
@@ -208,18 +209,6 @@ Resources:
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
-  rDatabaseCredentialRotationApplication:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location:
-        #https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_available-rotation-templates.html
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:297356227824:applications/SecretsManagerRDSMySQLRotationSingleUser
-        SemanticVersion: 1.0.86
-      Parameters:
-        endpoint: !Sub 'https://secretsmanager.${AWS::Region}.amazonaws.com'
-        functionName: 'database-credential-rotation-lambda'
-        vpcSecurityGroupIds: !Sub '${rSecurityGroupRDS}'
-        vpcSubnetIds: !Sub '${pDBPrivateSubnetA},${pDBPrivateSubnetB}'
   #This is a SecretTargetAttachment resource which updates the referenced Secret resource with properties about
   #the referenced RDS instance
   rSecretRDSInstanceAttachment:
@@ -235,7 +224,9 @@ Resources:
   # ensure that the secret contains all the information necessary for rotation to succeed.
   rDatabaseCredentialSecretRotationSchedule:
     Type: AWS::SecretsManager::RotationSchedule
-    DependsOn: rSecretRDSInstanceAttachment
+    DependsOn:
+      - rSecretRDSInstanceAttachment
+      - rDatabaseCredentialSecretLambdaInvokePermission
     Properties:
       SecretId: !Ref rDatabaseCredentialSecret
       RotationLambdaARN: !GetAtt rDatabaseCredentialRotationApplication.Outputs.RotationLambdaARN
@@ -244,10 +235,23 @@ Resources:
   #This is a Lambda Permission resource that grants Secrets Manager permission to invoke the function
   rDatabaseCredentialSecretLambdaInvokePermission:
     Type: AWS::Lambda::Permission
+    DependsOn: rDatabaseCredentialRotationApplication
     Properties:
       FunctionName: !GetAtt rDatabaseCredentialRotationApplication.Outputs.RotationLambdaARN
       Action: 'lambda:InvokeFunction'
       Principal: secretsmanager.amazonaws.com
+  rDatabaseCredentialRotationApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        #https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_available-rotation-templates.html
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:297356227824:applications/SecretsManagerRDSMySQLRotationSingleUser
+        SemanticVersion: 1.0.86
+      Parameters:
+        endpoint: !Sub 'https://secretsmanager.${AWS::Region}.amazonaws.com'
+        functionName: 'database-credential-rotation-lambda'
+        vpcSecurityGroupIds: !Sub '${rSecurityGroupAppInstance}'
+        vpcSubnetIds: !Sub '${pAppPrivateSubnetA},${pAppPrivateSubnetB}'
   rS3ELBAccessLogs:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -1268,7 +1272,7 @@ Outputs:
     Description: For assistance or questions regarding this quickstart please email
       compliance-accelerator@amazon.com
     Value: ''
-  rDBSecretsArn:
+  rDatabaseCredentialSecretArn:
     Description: Secrets Manager ARN containing Database Username and Password
     Value: !Ref rDatabaseCredentialSecret
   rDatabaseURL:
