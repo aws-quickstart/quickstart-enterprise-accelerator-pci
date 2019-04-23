@@ -240,6 +240,8 @@ Resources:
       FunctionName: !GetAtt rDatabaseCredentialRotationApplication.Outputs.RotationLambdaARN
       Action: 'lambda:InvokeFunction'
       Principal: secretsmanager.amazonaws.com
+  #This is the Lambda Rotation function from the Serververless Application Repository.
+  #https://serverlessrepo.aws.amazon.com/applications
   rDatabaseCredentialRotationApplication:
     Type: AWS::Serverless::Application
     Properties:
