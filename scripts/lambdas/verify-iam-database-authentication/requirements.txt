@@ -1,2 +1,2 @@
-mysql-connector-python==8.0.15
-#PyMySQL==0.9.3
+#install latest
+mysql-connector-python

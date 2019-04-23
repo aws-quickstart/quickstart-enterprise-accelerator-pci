@@ -1,1 +1,2 @@
-cfnresponse==1.0.1
+#install latest
+cfnresponse
