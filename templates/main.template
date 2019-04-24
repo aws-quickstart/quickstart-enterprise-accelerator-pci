@@ -465,6 +465,14 @@ Resources:
           !GetAtt
           - ProductionVpcTemplate
           - Outputs.rAppPrivateSubnetB
+        pRouteTableProdPrivate:
+          !GetAtt
+          - ProductionVpcTemplate
+          - Outputs.rRouteTableProdPrivate
+        pRouteTableProdPublic:
+          !GetAtt
+          - ProductionVpcTemplate
+          - Outputs.rRouteTableProdPublic
         pWebInstanceType:
           !FindInMap
           - AWSAMIRegionMap
