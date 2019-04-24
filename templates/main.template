@@ -529,7 +529,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: ApplicationTemplate
     Properties:
-      TemplateURL: cfn.s3logdelivery.yaml
+      TemplateURL: s3logdelivery.yaml
       TimeoutInMinutes: 30
       Parameters:
         pDatabaseInstanceId: !GetAtt ApplicationTemplate.Outputs.rDBInstanceId
@@ -542,7 +542,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: ApplicationTemplate
     Properties:
-      TemplateURL: .aws-sam/build/template.yaml
+      TemplateURL: iamauthentication/template.yaml
       TimeoutInMinutes: 30
       Parameters:
         pDatabaseInstanceId: !GetAtt ApplicationTemplate.Outputs.rDBInstanceId
