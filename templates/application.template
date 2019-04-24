@@ -34,6 +34,8 @@ Metadata:
       - pAppPrivateSubnetB
       - pDBPrivateSubnetA
       - pDBPrivateSubnetB
+      - pRouteTableProdPrivate
+      - pRouteTableProdPrivateB
     - Label:
         default: Application Configuration
       Parameters:
@@ -86,8 +88,14 @@ Parameters:
     Description: WebApp Subnet A
     Type: AWS::EC2::Subnet::Id
   pAppPrivateSubnetB:
-    Description: WebApp Subnet A
+    Description: WebApp Subnet B
     Type: AWS::EC2::Subnet::Id
+  pRouteTableProdPrivate:
+    Description: WebApp Route Table Id A
+    Type: String
+  pRouteTableProdPrivateB:
+    Description: WebApp Route Table Id B
+    Type: String
   pWebInstanceType:
     Description: Instance type for the webservers
     Type: String
@@ -254,6 +262,29 @@ Resources:
         functionName: 'database-credential-rotation-lambda'
         vpcSecurityGroupIds: !Sub '${rSecurityGroupAppInstance}'
         vpcSubnetIds: !Sub '${pAppPrivateSubnetA},${pAppPrivateSubnetB}'
+  rRDSCertificateS3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+            Resource:
+              - 'arn:aws:s3:::rds-downloads/*'
+      RouteTableIds:
+        - !Ref pRouteTableProdPrivate
+        - !Ref pRouteTableProdPrivateB
+      ServiceName: !Join
+        - ''
+        - - com.amazonaws.
+          - !Ref 'AWS::Region'
+          - .s3
+      #s3 is type Gateway
+      VpcEndpointType: Gateway
+      VpcId: !Ref pProductionVPC 
   rS3ELBAccessLogs:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
