@@ -1,2 +1,2 @@
 #install latest
-mysql-connector-python
+pymysql
