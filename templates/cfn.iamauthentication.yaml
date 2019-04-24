@@ -83,6 +83,21 @@ Resources:
       ServiceToken: !GetAtt [ rDBInstanceIdLambda, Arn ]
       DatabaseInstanceId: !Ref pDatabaseInstanceId
 
+  RDSCertificateS3Policy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: "RDSCertificateS3Policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+            Resource:
+               - 'arn:aws:s3:::rds-downloads/*'
+      Roles: [!Ref RDSIAMAuthenticationRole]
+
   RDSIAMAuthenticationPolicy:
     Type: AWS::IAM::Policy
     Properties: 
