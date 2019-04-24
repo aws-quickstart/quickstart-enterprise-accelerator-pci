@@ -9,7 +9,7 @@ export AWS_DEFAULT_REGION=us-east-1
 
 pushd ../templates
 
-sam build --template cfn.iamauthentication.yaml #--use-container
+sam build --template iamauthentication.yaml --build-dir iamauthentication #--use-container
 
 sam package \
     --s3-bucket "$BUCKET" \
