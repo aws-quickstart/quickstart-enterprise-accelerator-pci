@@ -265,7 +265,10 @@ Resources:
         functionName: 'database-credential-rotation-lambda'
         vpcSecurityGroupIds: !Sub '${rSecurityGroupAppInstance}'
         vpcSubnetIds: !Sub '${pAppPrivateSubnetA},${pAppPrivateSubnetB}'
-  rRDSCertificateS3Endpoint:
+  #https://aws.amazon.com/amazon-linux-ami/faqs/#vpc-endpoint
+  #https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints-s3.html
+  #RDS Certificate and Yum repo
+  rS3Endpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       PolicyDocument:
@@ -277,9 +280,9 @@ Resources:
               - 's3:GetObject'
             Resource:
               - 'arn:aws:s3:::rds-downloads/*'
-      RouteTableIds:
-        - !Ref pRouteTableProdPrivate
-        - !Ref pRouteTableProdPrivateB
+              - 'arn:aws:s3:::packages.*.amazonaws.com/*'
+              - 'arn:aws:s3:::repo.*.amazonaws.com/*'
+              - 'arn:aws:s3:::amazonlinux.*.amazonaws.com/*'
       ServiceName: !Join
         - ''
         - - com.amazonaws.
