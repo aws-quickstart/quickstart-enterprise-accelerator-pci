@@ -51,9 +51,9 @@ Metadata:
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
 Parameters:
-  pCloudFormationUser:
+  pKeyAdministratorRole:
     Type: String
-    Description: This is the CloudFormation user that is managing the CMK. Be sure that the key policy that you create allows the current user to administer the CMK. https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/
+    Description: This is the IAM Role that is managing the CMK. Be sure that the key policy that you create allows the current user to administer the CMK. https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/
   pNotifyEmail:
     Description: Notification email address for security events (you will receive
       a confirmation email)
@@ -442,7 +442,7 @@ Resources:
             - s3
       TimeoutInMinutes: 30
       Parameters:
-        pCloudFormationUser: !Ref pCloudFormationUser
+        pKeyAdministratorRole: !Ref pKeyAdministratorRole
         pSecurityAlarmTopic:
           !GetAtt
           - LoggingTemplate

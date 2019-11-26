@@ -56,9 +56,9 @@ Metadata:
       - QSS3BucketName
       - QSS3KeyPrefix
 Parameters:
-  pCloudFormationUser:
+  pKeyAdministratorRole:
     Type: String
-    Description: This is the CloudFormation user that is managing the CMK. Be sure that the key policy that you create allows the current user to administer the CMK. https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/
+    Description: This is the IAM Role that is managing the CMK. Be sure that the key policy that you create allows the current user to administer the CMK. https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/
   pSecurityAlarmTopic:
     Description: SNS topic for alarms and notifications
     Type: String
@@ -567,7 +567,7 @@ Resources:
           Principal:
             AWS:
               - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:user/${pCloudFormationUser}'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/${pKeyAdministratorRole}'
           Action:
           - 'kms:Create*'
           - 'kms:Describe*'
