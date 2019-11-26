@@ -137,6 +137,10 @@ Parameters:
   pDBAllocatedStorage:
     Description: Allocated Storage (in GB) for RDS instance
     Type: String
+  pDBEngineVersion:
+    Description: Database Engine Version
+    Type: String
+    Default: 5.6
   pEnvironment:
     Description: Environment type (development, test, or production)
     Type: String
@@ -316,7 +320,7 @@ Resources:
                 - aws
           Principal:
             AWS:
-            - !FindInMap [elbMap, !Ref 'AWS::Region', ELB]
+              !FindInMap [elbMap, !Ref 'AWS::Region', ELB]
           Action:
           - s3:PutObject
   rSecurityGroupWeb:
@@ -536,7 +540,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
         EngineName: mysql
-        MajorEngineVersion: 5.6
+        MajorEngineVersion: !Ref pDBEngineVersion
         OptionGroupDescription: "MySQL Audit Option Group"
         OptionConfigurations:
           #https://mariadb.com/kb/en/library/mariadb-audit-plugin-system-variables/#server_audit_file_rotate_size
@@ -618,6 +622,7 @@ Resources:
         - "slowquery"
         - "audit"
       Engine: MySQL
+      EngineVersion: !Ref pDBEngineVersion
       MultiAZ: true
       OptionGroupName: !Ref rOptionGroupMySQL
       StorageEncrypted: true
