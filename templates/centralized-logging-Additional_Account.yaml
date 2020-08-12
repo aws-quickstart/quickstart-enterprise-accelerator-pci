@@ -49,7 +49,7 @@ Parameters:
       can include numbers, lowercase letters, uppercase letters, and hyphens (-).
       It cannot start or end with a hyphen (-). If you are unsure, do not change this value.
     Type: String
-  √:
+  QSS3BucketRegion:
     Default: 'us-east-1'
     Description: 'The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.'
     Type: String
@@ -58,7 +58,7 @@ Parameters:
     ConstraintDescription:
       Quick Start key prefix can include numbers, lowercase letters,
       uppercase letters, hyphens (-), and forward slash (/).
-    Default: quickstart-*************************/
+    Default: quickstart-compliance-pci/
     Description:
       S3 key prefix for the Quick Start assets. Quick Start key prefix
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
@@ -165,7 +165,7 @@ Resources:
       Role: !Sub ${LogStreamerRole.Arn}
       Code:
         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/cfindexscripts2/index.zip
+        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/cfnindexscript2/index.zip
       Runtime: nodejs10.x
       Timeout: 300
 
