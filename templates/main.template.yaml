@@ -385,9 +385,9 @@ Resources:
         pDMZSubnetBCIDR: 10.100.20.0/24
         pManagementCIDR: 10.10.0.0/16
         pAppPrivateSubnetACIDR: 10.100.96.0/21
-        pAppPrivateSubnetBCIDR: 10.100.119.0/21
-        pDBPrivateSubnetACIDR: 10.100.194.0/21
-        pDBPrivateSubnetBCIDR: 10.100.212.0/21
+        pAppPrivateSubnetBCIDR: 10.100.112.0/21
+        pDBPrivateSubnetACIDR: 10.100.192.0/21
+        pDBPrivateSubnetBCIDR: 10.100.208.0/21
         pVPCTenancy: !Ref VPCTenancy
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
