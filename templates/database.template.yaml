@@ -179,7 +179,7 @@ Resources:
           # V56536055 - 10/08/2018 - better logging capabilities
           LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 300
       Role: !GetAtt ProcRole.Arn
       FunctionName: LambdaFirehoseProcessor

@@ -166,7 +166,7 @@ Resources:
       Code:
         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
         S3Key: !Sub ${QSS3KeyPrefix}functions/packages/cfnindexscript2/index.zip
-      Runtime: nodejs10.x
+      Runtime: nodejs14.x
       Timeout: 300
 
   LogStreamerInvokePermission:
