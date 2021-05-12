@@ -1,0 +1,34 @@
+
+.Availability Zone selection
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|First Availability Zone for Aurora
+(`RegionAZ1Name`)|`**__Requires input__**`|The name of the first Availability Zone where you will deploy the Aurora database cluster.|Second Availability Zone for Aurora
+(`RegionAZ2Name`)|`**__Requires input__**`|The name of the second Availability Zone where you will deploy the Aurora database cluster.
+|===
+.Network configuration (existing VPC)
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|CIDR for Aurora database
+(`ProductionCIDR`)|`10.100.0.0/16`|CIDR Range to allow input into the database.|VPC ID for Aurora database
+(`ProductionVPC`)|`**__Requires input__**`|ID of the VPC where you will deploy the Aurora database cluster.|First private database subnet for Aurora
+(`DBPrivateSubnetA`)|`**__Requires input__**`|The ID of the first private subnet in your Production VPC.|Second private database subnet for Aurora
+(`DBPrivateSubnetB`)|`**__Requires input__**`|The ID of the second private subnet in your Production VPC.
+|===
+.Database configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Aurora database name
+(`DBName`)|`**__Requires input__**`|Name of the Aurora database.|Aurora database user
+(`DBUser`)|`**__Requires input__**`|The user name for the database administrator of the Aurora database.|Aurora database password
+(`DBPassword`)|`**__Requires input__**`|Password for the database instance.|Centralized logging bucket
+(`CentralLogBucket`)|`**__Blank string__**`|The S3 bucket to send Aurora audit logs. This can be the bucket that you created when you launched the centralized logging template.
+|===
+.AWS Quick Start configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Quick Start S3 bucket name
+(`QSS3BucketName`)|`aws-quickstart`|S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-). If you are unsure, do not change this value.|Quick Start S3 bucket region
+(`QSS3BucketRegion`)|`us-east-1`|The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.|Quick Start S3 key prefix
+(`QSS3KeyPrefix`)|`quickstart-compliance-pci/`|S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). If you are unsure, do not change this value.
+|===

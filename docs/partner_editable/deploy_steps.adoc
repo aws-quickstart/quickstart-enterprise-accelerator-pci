@@ -20,7 +20,7 @@ endif::marketplace_subscription[]
 
 === Launch the Quick Start
 // Adapt the following warning to your Quick Start.
-WARNING: If you’re deploying {partner-product-short-name} into an existing VPC, make sure that your VPC has two private subnets in different Availability Zones for the workload instances and that the subnets aren’t shared. This Quick Start doesn’t support https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html[shared subnets^]. These subnets require https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html[NAT gateways^] in their route tables to allow the instances to download packages and software without exposing them to the internet. Also make sure that the domain name option in the DHCP options is configured as explained in http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html[DHCP options sets^]. You provide your VPC settings when you launch the Quick Start.
+// WARNING: If you’re deploying {partner-product-short-name} into an existing VPC, make sure that your VPC has two private subnets in different Availability Zones for the workload instances and that the subnets aren’t shared. This Quick Start doesn’t support https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html[shared subnets^]. These subnets require https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html[NAT gateways^] in their route tables to allow the instances to download packages and software without exposing them to the internet. Also make sure that the domain name option in the DHCP options is configured as explained in http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html[DHCP options sets^]. You provide your VPC settings when you launch the Quick Start.
 
 Each deployment takes about {deployment_time} to complete.
 
@@ -28,11 +28,18 @@ Each deployment takes about {deployment_time} to complete.
 +
 [cols="3,1"]
 |===
-^|http://qs_launch_permalink[Deploy {partner-product-short-name} into a new VPC on AWS^]
+^|http://qs_launch_permalink[Deploy {partner-product-short-name} Main Template^]
 ^|http://qs_template_permalink[View template^]
 
-^|http://qs_launch_permalink[Deploy {partner-product-short-name} into an existing VPC on AWS^]
+^|http://qs_launch_permalink[Deploy {partner-product-short-name} Centralized Logging Template^]
 ^|http://qs_template_permalink[View template^]
+
+^|http://qs_launch_permalink[Deploy {partner-product-short-name} Database Template^]
+^|http://qs_template_permalink[View template^]
+
+^|http://qs_launch_permalink[Deploy {partner-product-short-name} Web Application Template^]
+^|http://qs_template_permalink[View template^]
+
 |===
 +
 . Check the AWS Region that’s displayed in the upper-right corner of the navigation bar, and change it if necessary. This Region is where you build the network infrastructure. The template is launched in the {default_deployment_region} Region by default. For other choices, see link:#_supported_regions[Supported Regions] earlier in this guide.

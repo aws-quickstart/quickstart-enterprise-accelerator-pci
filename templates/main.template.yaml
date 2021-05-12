@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Provides nesting for required stacks to deploy a baseline architecure to support PCI compliance. (qs-1qtdd1c6i)
 Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Main"
+    Order: 1
   Stack:
     Value: 0
   VersionDate:
@@ -80,7 +83,6 @@ Metadata:
         default: Database user name
       DBPassword:
         default: Database password
-
 Parameters:
   EC2KeyPairBastion:
     Description: The SSH key pair in your account to use for the bastion host login. This is one of the keys that you created in the pre-deployment steps.

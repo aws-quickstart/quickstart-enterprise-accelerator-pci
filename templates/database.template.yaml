@@ -2,6 +2,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Provides RDS deployment ontop of main template (qs-1qtdd1c8m)
 Metadata:
+  QuickStartDocumentation:
+      EntrypointName: "Database"
+      Order: 3
   Stack:
     Value: 3
   VersionDate:

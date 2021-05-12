@@ -3,12 +3,10 @@
 |Resource |This deployment uses
 
 // Space needed to maintain table headers
-|VPCs |<n>
-|Elastic IP addresses |<n>
-|Security groups |<n>
-|AWS Identity and Access Management (IAM) roles |<n>
-|Auto Scaling groups |<n>
-|Application Load Balancers |<n>
-|Network Load Balancers |<n>
-|<type> instances |<n>
+|VPCs |2
+|Elastic IP addresses |5
+|AWS Identity and Access Management (IAM) roles |5
+|AWS Identity and Access Management (IAM) groups |6
+|Auto Scaling groups |2
+|Application Load Balancers |2
 |===

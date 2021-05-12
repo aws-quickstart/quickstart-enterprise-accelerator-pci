@@ -1,0 +1,43 @@
+
+.VPC Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Instance tenancy
+(`VPCTenancy`)|`default`|The tenancy attribute for the instances launched into the VPC. If unsure, leave as default.|First Availability Zone
+(`AvailabilityZoneA`)|`**__Requires input__**`|The name of Availability Zone 1.|Second Availability zone
+(`AvailabilityZoneB`)|`**__Requires input__**`|The name of Availability Zone 2. This must be different from the name of the first Availability Zone.
+|===
+.EC2 Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Existing SSH key for the bastion instance
+(`EC2KeyPairBastion`)|`**__Requires input__**`|The SSH key pair in your account to use for the bastion host login. This is one of the keys that you created in the pre-deployment steps.|Existing SSH key for other instances
+(`EC2KeyPair`)|`**__Requires input__**`|The SSH key pair in your account to use for all other EC2 instance logins. This is one of the keys that you created in the pre-deployment steps. logins
+|===
+.AWS Quick Start Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Quick Start S3 bucket name
+(`QSS3BucketName`)|`aws-quickstart`|S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-). If you are unsure, do not change this value.|Quick Start S3 bucket region
+(`QSS3BucketRegion`)|`us-east-1`|The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.|Quick Start S3 key prefix
+(`QSS3KeyPrefix`)|`quickstart-compliance-pci/`|S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). If you are unsure, do not change this value.
+|===
+.IAM Password Policy
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Maximum password age
+(`MaxPasswordAge`)|`90`|Maximum age for passwords, in number of days.|Minimum password length
+(`MinPasswordLength`)|`7`|Minimum password length.|Previous passwords retained
+(`PasswordHistory`)|`4`|Number of previous passwords to remember.|Lowercase characters required
+(`RequireLowercaseChars`)|`True`|Password requirement of at least one lowercase character.|Number required
+(`RequireNumbers`)|`True`|Password requirement of at least one number.|Symbol required
+(`RequireSymbols`)|`True`|Password requirement of at least one nonalphanumeric character.|Uppercase character required
+(`RequireUppercaseChars`)|`True`|Password requirement of at least one uppercase character.
+|===
+.Database configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Database user name
+(`DBUsername`)|`admin`|User name for connecting to the database instance.|Database password
+(`DBPassword`)|`**__Requires input__**`|Password for connecting to the database instance.
+|===

@@ -1,1 +1,12 @@
-// placeholder
+
+=== Main
+include::main.template.adoc[]
+
+=== Centralized Logging
+include::centralized-logging-Primary_LCQS_Config_Alerts.template.adoc[]
+
+=== Database
+include::database.template.adoc[]
+
+=== Web Application
+include::application-ssl.template.adoc[]

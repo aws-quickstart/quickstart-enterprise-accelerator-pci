@@ -1,0 +1,39 @@
+
+.Amazon Elasticsearch configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Amazon ES domain name
+(`DOMAINNAME`)|`pcicentralizedlogging`|Name for the Amazon ES domain that this template will create. Domain names must start with a lowercase letter and must be between 3 and 28 characters. Valid characters are a-z (lowercase only), 0-9.|Amazon ES domain admin email address
+(`DomainAdminEmail`)|`esdomainadmin@example.com`|E-mail address of the administrator for the Amazon ES domain. Alerts will be sent to this email address.|Cluster size
+(`ClusterSize`)|`Small`|Amazon ES cluster size. Choose Small (4 data nodes), Medium (6 data nodes), Large (8 data nodes), xLarge (10 data nodes).|Additional log account
+(`ProdAccount`)|`**__Requires input__**`|Additional account ID for which you want to allow for centralized logging (e.g., Production). Leave blank if none.|Additional log account
+(`TestAccount`)|`**__Requires input__**`|Additional account ID for which you want to allow for centralized logging (e.g., Test). Leave blank if none.|Additional log account
+(`DevAccount`)|`**__Requires input__**`|Additional account ID for which you want to allow centralized logging (e.g., Develop). Leave blank if none.
+|===
+.Amazon Cognito configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Amazon Cognito admin email address
+(`CognitoAdminEmail`)|`cognitoadmin@example.com`|Email address of the Amazon Cognito admin.
+|===
+.Central logging S3 bucket name
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|S3 bucket name for CloudTrail logging
+(`BucketName`)|`**__Requires input__**`|The name of a new S3 bucket for logging CloudTrail events. The name must be a globally unique value and must be in lowercase letters.
+|===
+.AWS Config
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|AWS Config
+(`DeployConfigRule`)|`No Config`|Deployment of AWS Config. Choose Yes Config to deploy AWS Config. This requires that you set up a configuration recorder in the pre-deployment steps.|Required tag key
+(`RequiredTagKey`)|`**__Requires input__**`|Tag key to use with the EC2/EBS REQUIRED_TAGS rule (optional, leave blank to ignore or if you are not deploying config)
+|===
+.AWS Quick Start configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Quick Start S3 bucket name
+(`QSS3BucketName`)|`aws-quickstart`|S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-). If you are unsure, do not change this value.|Quick Start S3 bucket region
+(`QSS3BucketRegion`)|`us-east-1`|The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.|Quick Start S3 key prefix
+(`QSS3KeyPrefix`)|`quickstart-compliance-pci/`|S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). If you are unsure, do not change this value.
+|===
