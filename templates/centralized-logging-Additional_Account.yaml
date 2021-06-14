@@ -213,7 +213,7 @@ Resources:
       Code:
        S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/solution-helper/v3/solution-helper/solution-helper.zip
-      Runtime: python2.7
+      Runtime: python3.7
       Timeout: 300
 
   CreateUniqueID:
