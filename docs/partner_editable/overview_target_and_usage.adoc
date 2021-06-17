@@ -1,0 +1,11 @@
+// Replace the content in <>
+// Identify your target audience and explain how/why they would use this Quick Start.
+//Avoid borrowing text from third-party websites (copying text from AWS service documentation is fine). Also, avoid marketing-speak, focusing instead on the technical aspect.
+
+This guide provides instructions for deploying the {partner-product-short-name} Quick Start reference architecture on the AWS Cloud.
+
+This Quick Start deploys a standardized environment that helps
+organizations with workloads that fall in scope for Payment Card Industry (PCI) Data
+Security Standard (DSS) compliance. The template relies on the requirements of PCI DSS
+version 3.2.1. The deployment guide includes links for viewing and launching AWS
+CloudFormation templates that automate the deployment.

@@ -1,0 +1,62 @@
+
+.Availability Zone selection
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|ID of first availability zone
+(`AvailabilityZoneA`)|`**__Requires input__**`|rDBPrivateSubnetB|ID of second availability zone
+(`AvailabilityZoneB`)|`**__Requires input__**`|rDBPrivateSubnetB
+|===
+.Network (existing VPC config)
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|CIDR block of production VPC
+(`pProductionCIDR`)|`10.100.0.0/16`|Production VPC CIDR|CIDR block of management VPC
+(`pManagementCIDR`)|`10.10.0.0/16`|Management VPC CIDR|Production VPC ID
+(`pProductionVPC`)|`**__Requires input__**`|Production VPC|First production DMZ subnet
+(`pDMZSubnetA`)|`**__Requires input__**`|DMZ Subnet A|Second production DMZ subnet
+(`pDMZSubnetB`)|`**__Requires input__**`|DMZ Subnet B|First production application subnet
+(`pAppPrivateSubnetA`)|`**__Requires input__**`|WebApp Subnet A|Second production application subnet
+(`pAppPrivateSubnetB`)|`**__Requires input__**`|WebApp Subnet A
+|===
+.Application Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Web instance type
+(`pWebInstanceType`)|`m4.large`|Instance type for the webservers|Web server SSM AMI parameter
+(`pWebServerAMI`)|`/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2`|NO_DESCRIPTION|Application instance type
+(`pAppInstanceType`)|`m4.large`|Instance type for the app webservers|Application server SSM AMI parameter
+(`pAppAmi`)|`/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2`|NO_DESCRIPTION|EC2 key pair
+(`pEC2KeyPair`)|`**__Requires input__**`|Key Name for Instance|Environment type
+(`pEnvironment`)|`development`|Environment type (development, test, or production)|Supports glacier
+(`pSupportsGlacier`)|`true`|Determines whether this region supports Glacier (passed in from main template)
+|===
+.Logging configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Central S3 logging bucket
+(`CentralLogBucket`)|`**__Blank string__**`|The S3 bucket to send AWS WAF logs to. This bucket should already exist and can be same bucket from the centralized logging template.|WAF logging
+(`WAFlogging`)|`Amazon S3 Only`|The storage location for AWS WAF logs. Choose Amazon Elasticsearch_S3 to have AWS WAF logs streamed to Amazon ES (current Region) and your central logging bucket.
+|===
+.Amazon Elasticsearch configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|ElasticSearch cluster ARN
+(`ESClusterARN`)|`**__Blank string__**`|(If Amazon Elasticsearch_S3 is chosen for the WAFlogging parameter) The Amazon Resource Name (ARN) of the Amazon ES domain that Kinesis Data Firehose delivers data to. Cluster must be in same account and Region.
+|===
+.Database Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Database host
+(`pDBHost`)|`**__Requires input__**`|Amazon RDS MySQL endpoint|Database name
+(`pDBName`)|`examplewordpress`|Name of RDS Database|Database user
+(`pDBUser`)|`admin`|Username of DB Instance|Database password
+(`pDBPassword`)|`**__Requires input__**`|Password of DB Instance
+|===
+.AWS Quick Start Configuration
+[width="100%",cols="16%,11%,73%",options="header",]
+|===
+|Parameter label (name) |Default value|Description|Quick Start S3 bucket name
+(`QSS3BucketName`)|`aws-quickstart`|S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).|Quick Start S3 bucket Region
+(`QSS3BucketRegion`)|`us-east-1`|The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.|Quick Start S3 key prefix
+(`QSS3KeyPrefix`)|`quickstart-compliance-pci/`|S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).
+|===

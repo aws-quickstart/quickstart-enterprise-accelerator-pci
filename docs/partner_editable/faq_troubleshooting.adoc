@@ -1,0 +1,72 @@
+// Add any tips or answers to anticipated questions.
+
+== FAQ
+
+*Q.* I encountered a *CREATE_FAILED* error when I launched the Quick Start.
+
+*A.* If AWS CloudFormation fails to create the stack, relaunch the template with *Rollback on failure* set to *Disabled*. This setting is under *Advanced* in the AWS CloudFormation console on the *Configure stack options* page. With this setting, the stack’s state is retained, and the instance keeps running so that you can troubleshoot the issue. (For Windows, look at the log files in `%ProgramFiles%\Amazon\EC2ConfigService` and `C:\cfn\log`.)
+// Customize this answer if needed. For example, if you’re deploying on Linux instances, either provide the location for log files on Linux or omit the final sentence. If the Quick Start has no EC2 instances, revise accordingly (something like "and the assets keep running").
+
+WARNING: When you set *Rollback on failure* to *Disabled*, you continue to incur AWS charges for this stack. Delete the stack when you finish troubleshooting.
+
+For more information, see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html[Troubleshooting AWS CloudFormation^].
+
+*Q.* I encountered a size-limitation error when I deployed the AWS CloudFormation templates.
+
+*A.* Launch the Quick Start templates from the links in this guide or from another S3 bucket. If you deploy the templates from a local copy on your computer or from a location other than an S3 bucket, you might encounter template-size limitations. For more information, see http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html[AWS CloudFormation quotas^].
+
+
+== Troubleshooting
+
+If you encounter a *CREATE_FAILED* error when you deploy the Quick Start, refer to the
+following table for known issues and solutions. 
+
+[cols="30s,20,30",grid=rows,frame=topbot, options="header"]
+|===
+|Error message 
+|Possible cause
+|What to do
+
+|The following resource(s) failed to
+create: +
+[rConfigRuleForRequiredTags, +
+rConfigRuleForUnrestrictedPorts, +
+rConfigRuleForSSH, +
+rConfigRulesLambdaRole]
+|The Support Config
+parameter was set to Yes,
+but AWS Config isn’t
+available in the Region you
+selected, or AWS Config has
+not been initialized.
+|Set the Support Config parameter to No,
+or select another Region. Also make sure
+that AWS Config is set up properly, as
+described in the pre-deployment steps.
+
+|Maximum VPCs limit reached
+|You’ve exceeded the
+number of VPCs allowed in
+your account.
+|Delete VPCs and/or request a quota
+increase. Try to create the stack again. For
+more information, see technical
+requirements.
+
+|Maximum EIPs limit reached
+|You’ve exceeded the quota
+of Elastic IP addresses in
+your account.
+|Disassociate Elastic IP addresses or request
+an Elastic IP address quota increase, and
+try to create the stack again. For more
+information, see technical requirements.
+
+|Other limits exceeded
+|You’ve exceeded the use of
+resources in your AWS
+account.
+|See technical requirements, and request
+service quota increases as necessary.
+
+|===

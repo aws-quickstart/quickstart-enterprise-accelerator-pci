@@ -1,0 +1,13 @@
+// Replace the content in <>
+// For example: “familiarity with basic concepts in networking, database operations, and data encryption” or “familiarity with <software>.”
+// Include links if helpful. 
+// You don't need to list AWS services or point to general info about AWS; the boilerplate already covers this.
+
+This Quick Start requires a moderate to high level of understanding of the process to
+achieve and manage PCI DSS control requirements and compliance processes within a
+traditional hosting environment.
+
+Additionally, this solution is targeted at Information Technology (IT) PCI DSS assessors
+and security personnel, and assumes familiarity with basic security concepts in the area of
+networking, operating systems, data encryption, operational controls, and cloud computing
+services.

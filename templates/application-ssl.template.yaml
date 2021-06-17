@@ -4,6 +4,9 @@ Description: Provides nesting for required stacks to deploy a full sample web ap
   with reverse proxy, ELBs, IAM, and other resources (for demonstration/POC/testing)
   QS(5026) (qs-1qtdd1c8e)
 Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Web Application"
+    Order: 4
   Stack:
     Value: 3
   VersionDate:

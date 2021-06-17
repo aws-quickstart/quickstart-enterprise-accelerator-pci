@@ -1,0 +1,16 @@
+// Edit this placeholder text to accurately describe your architecture.
+
+This Quick Start provides two deployment options:
+
+* *Deploy {partner-product-short-name} Main Template*. This automated AWS CloudFormation template deploys the Quick Start architecture into multiple Availability Zones in VPCs.
+
+* *Deploy {partner-product-short-name} Centralized Logging Template*. The primary centralized logging AWS CloudFormation template deploys the logging architecture in a single account. An additional centralized logging template can be used to
+forward logs from other accounts to the central log account.
+
+* *Deploy {partner-product-short-name} Database Template*. This automated AWS CloudFormation template deploys the database architecture in the Production VPC. It includes the deployment of Secrets Manager and a customer master key
+(CMK). 
++
+NOTE: The database password is maintained within Secrets Manager with PCIcompliant complexity, length, and expiration and rotation.
+
+* *Deploy {partner-product-short-name} Web Application Template*. This automated AWS CloudFormation template deploys a web application architecture, including a nested AWS WAF template.
+

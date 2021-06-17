@@ -6,3 +6,6 @@
 	path = submodules/quickstart-amazon-aurora-mysql
 	url = https://github.com/aws-quickstart/quickstart-amazon-aurora-mysql.git
 	branch = main
+[submodule "docs/boilerplate"]
+	path = docs/boilerplate
+	url = https://github.com/aws-quickstart/quickstart-documentation-base-common.git

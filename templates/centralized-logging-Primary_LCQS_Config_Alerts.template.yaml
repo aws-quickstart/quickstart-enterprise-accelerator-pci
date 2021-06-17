@@ -1,0 +1,1258 @@
+# Centralized Logging Solution
+AWSTemplateFormatVersion: 2010-09-09
+Description: (SO0009) - AWS Centralized Logging Solution, primary template (qs-1qtdd1c9p)
+Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Centralized Logging"
+    Order: 2
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Amazon Elasticsearch configuration
+        Parameters:
+        - DOMAINNAME
+        - DomainAdminEmail
+        - ClusterSize
+        - ProdAccount
+        - TestAccount
+        - DevAccount
+      - Label:
+          default: Amazon Cognito configuration
+        Parameters:
+        - CognitoAdminEmail
+      - Label:
+          default: Central logging S3 bucket name
+        Parameters:
+        - BucketName
+      - Label:
+          default: AWS Config
+        Parameters:
+        - DeployConfigRule
+        - RequiredTagKey
+      - Label:
+          default: AWS Quick Start configuration
+        Parameters:
+        - QSS3BucketName
+        - QSS3BucketRegion
+        - QSS3KeyPrefix
+    ParameterLabels:
+      CognitoAdminEmail:
+        default: Amazon Cognito admin email address
+      DomainAdminEmail:
+        default: Amazon ES domain admin email address
+      DOMAINNAME:
+        default: Amazon ES domain name
+      ClusterSize:
+        default: Cluster size
+      BucketName:
+        default: S3 bucket name for CloudTrail logging
+      ProdAccount:
+        default: Additional log account
+      TestAccount:
+        default: Additional log account
+      DevAccount:
+        default: Additional log account
+      DeployConfigRule:
+        default: AWS Config
+      RequiredTagKey:
+        default: Required tag key
+      QSS3BucketName:
+        default: Quick Start S3 bucket name
+      QSS3BucketRegion:
+        default: Quick Start S3 bucket region
+      QSS3KeyPrefix:
+        default: Quick Start S3 key prefix
+Parameters:
+  # Name for ES Domain
+  DOMAINNAME:
+    Description: Name for the Amazon ES domain that this template will create. Domain names must start with a lowercase letter and must be between 3 and 28 characters. Valid characters are a-z (lowercase only), 0-9.
+    Type: String
+    Default: pcicentralizedlogging
+  # Email address for the Elasticsearch domain admin
+  DomainAdminEmail:
+    Type: String
+    Default: esdomainadmin@example.com
+    AllowedPattern: '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    Description: E-mail address of the administrator for the Amazon ES domain. Alerts will be sent to this email address.
+  # Email address for Cognito Admin user
+  CognitoAdminEmail:
+    Type: String
+    Default: cognitoadmin@example.com
+    AllowedPattern: '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    Description: Email address of the Amazon Cognito admin.
+  # ES cluster size
+  ClusterSize:
+    Description: Amazon ES cluster size. Choose Small (4 data nodes), Medium (6 data nodes), Large (8 data nodes), xLarge (10 data nodes).
+    Type: String
+    Default: Small
+    AllowedValues:
+    - Small
+    - Medium
+    - Large
+    - xLarge
+  BucketName:
+    Description: The name of a new S3 bucket for logging CloudTrail events. The name must be a globally unique value and must be in lowercase letters.
+    Type: String
+    AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
+  #Additional accounts which would use the same ES
+  ProdAccount:
+    Description: "Additional account ID for which you want to allow for centralized logging (e.g., Production). Leave blank if none."
+    Type: String
+    AllowedPattern: "(|\\d{12})"
+    ConstraintDescription: AWS accounts are 12 digits long. Enter 12 digits or leave blank.
+  TestAccount:
+    Description: "Additional account ID for which you want to allow for centralized logging (e.g., Test). Leave blank if none."
+    Type: String
+    AllowedPattern: "(|\\d{12})"
+    ConstraintDescription: AWS accounts are 12 digits long. Enter 12 digits or leave blank.
+  DevAccount:
+    Description: "Additional account ID for which you want to allow centralized logging (e.g., Develop). Leave blank if none."
+    Type: String
+    AllowedPattern: "(|\\d{12}I5)"
+    ConstraintDescription: AWS accounts are 12 digits long. Enter 12 digits or leave blank.
+  RequiredTagKey:
+    Description: Tag key to use with the EC2/EBS REQUIRED_TAGS rule (optional, leave
+      blank to ignore or if you are not deploying config)
+    Type: String
+  DeployConfigRule:
+    Type: String
+    Description: Deployment of AWS Config. Choose Yes Config to deploy AWS Config. This requires that you set up a configuration recorder in the pre-deployment steps.
+    AllowedValues:
+      - Yes Config
+      - No Config
+    Default: No Config
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-.]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, periods (.), and hyphens (-). It cannot start or
+      end with a hyphen (-). If you are unsure, do not change this value.
+    Default: aws-quickstart
+    Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
+      can include numbers, lowercase letters, uppercase letters, and hyphens (-).
+      It cannot start or end with a hyphen (-). If you are unsure, do not change this value.
+    Type: String
+  QSS3BucketRegion:
+    Default: 'us-east-1'
+    Description: The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/). If you are unsure, do not change this value.
+    Default: quickstart-compliance-pci/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/). If you are unsure, do not change this value.
+    Type: String
+Mappings:
+  InstanceMap:
+    send-data: {"SendAnonymousData": "Yes"}
+  InstanceSizing:
+    elasticsearch:
+      Small: i3.large.elasticsearch
+      Medium: i3.2xlarge.elasticsearch
+      Large: i3.4xlarge.elasticsearch
+      xLarge: i3.16xlarge.elasticsearch
+  MasterSizing:
+    elasticsearch:
+      Small: r5.large.elasticsearch
+      Medium: r5.large.elasticsearch
+      Large: r5.large.elasticsearch
+      xLarge: r5.large.elasticsearch
+  NodeCount:
+    elasticsearch:
+      Small: '4'
+      Medium: '6'
+      Large: '8'
+      xLarge: '10'
+  SourceCode:
+    General:
+      S3Bucket: "solutions"
+      KeyPrefix: "centralized-logging/v3.0.0"
+  RegionServiceSupport:
+    ap-northeast-1:
+      Glacier: 'GLACIER'
+    ap-northeast-2:
+      Glacier: 'GLACIER'
+    ap-south-1:
+      Glacier: 'GLACIER'
+    ap-southeast-1:
+      Glacier: 'GLACIER'
+    ap-southeast-2:
+      Glacier: 'GLACIER'
+    ca-central-1:
+      Glacier: 'GLACIER'
+    eu-central-1:
+      Glacier: 'GLACIER'
+    eu-west-1:
+      Glacier: 'GLACIER'
+    eu-west-2:
+      Glacier: 'GLACIER'
+    sa-east-1:
+      Glacier: 'STANDARD_IA'
+    us-east-1:
+      Glacier: 'GLACIER'
+    us-east-2:
+      Glacier: 'GLACIER'
+    us-gov-west-1:
+      Glacier: 'GLACIER'
+    us-west-1:
+      Glacier: 'GLACIER'
+    us-west-2:
+      Glacier: 'GLACIER'
+Conditions:
+  UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
+  ProdAccount: !Equals [!Ref ProdAccount, ""]
+  TestAccount: !Equals [!Ref TestAccount, ""]
+  DevAccount: !Equals [!Ref DevAccount, ""]
+  DeployConfigRule: !Equals [ !Ref DeployConfigRule, Yes Config ]
+Resources:
+  ConfigTemplate:
+    Condition: DeployConfigRule
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-compliance-common/templates/config-rules.template'
+          - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+            S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      TimeoutInMinutes: 20
+      Parameters:
+        RequiredTagKey: !Ref RequiredTagKey
+  UserPool:
+    DeletionPolicy: Retain
+    Type: 'AWS::Cognito::UserPool'
+    Properties:
+      UserPoolName: !Sub ${DOMAINNAME}_kibana_access
+      AutoVerifiedAttributes:
+        - email
+        - phone_number
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 7
+          RequireLowercase: True
+          RequireNumbers: True
+          RequireSymbols: True
+          RequireUppercase: True
+          TemporaryPasswordValidityDays: 90
+      #lockout policy is part of Cognito PCI Compliance
+      MfaConfiguration: 'OPTIONAL'
+      SmsConfiguration:
+        ExternalId: !Sub ${DOMAINNAME}_kibana_access-external
+        SnsCallerArn: !GetAtt SNSRole.Arn
+      EmailVerificationSubject: !Ref AWS::StackName
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: phone_number
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+  # Creates a needed group in Cognito for Kibana access
+  UserPoolGroup:
+    DeletionPolicy: Retain
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      Description: 'User pool group for Kibana access'
+      GroupName: !Sub ${DOMAINNAME}_kibana_access_group
+      Precedence: 0
+      UserPoolId: !Ref UserPool
+  # Creates a User Pool Client to be used by the identity pool
+  UserPoolClient:
+    DeletionPolicy: Retain
+    Type: 'AWS::Cognito::UserPoolClient'
+    Properties:
+      ClientName: !Sub ${DOMAINNAME}-client
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+  # Creates a federated Identity pool
+  IdentityPool:
+    DeletionPolicy: Retain
+    Type: 'AWS::Cognito::IdentityPool'
+    Properties:
+      IdentityPoolName: !Sub ${DOMAINNAME}Identity
+      AllowUnauthenticatedIdentities: true
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+  # Create a role for unauthorized access to AWS resources. Very limited access.
+  # Only allows users in the previously created Identity Pool
+  CognitoUnAuthorizedRole:
+    DeletionPolicy: Retain
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: 'CognitoUnauthorizedPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                  - 'cognito-sync:BulkPublish'
+                  - 'cognito-sync:DescribeIdentityPoolUsage'
+                  - 'cognito-sync:GetBulkPublishDetails'
+                  - 'cognito-sync:GetCognitoEvents'
+                  - 'cognito-sync:GetIdentityPoolConfiguration'
+                  - 'cognito-sync:ListIdentityPoolUsage'
+                  - 'cognito-sync:SetCognitoEvents'
+                  - 'congito-sync:SetIdentityPoolConfiguration'
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${IdentityPool}'
+
+  # Create a role for authorized access to AWS resources.
+  # Only allows users in the previously created Identity Pool
+  CognitoAuthorizedRole:
+    DeletionPolicy: Retain
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: 'CognitoAuthorizedPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                  - 'cognito-sync:BulkPublish'
+                  - 'cognito-sync:DescribeIdentityPoolUsage'
+                  - 'cognito-sync:GetBulkPublishDetails'
+                  - 'cognito-sync:GetCognitoEvents'
+                  - 'cognito-sync:GetIdentityPoolConfiguration'
+                  - 'cognito-sync:ListIdentityPoolUsage'
+                  - 'cognito-sync:SetCognitoEvents'
+                  - 'congito-sync:SetIdentityPoolConfiguration'
+                  - 'cognito-identity:DeleteIdentityPool'
+                  - 'cognito-identity:DescribeIdentityPool'
+                  - 'cognito-identity:GetIdentityPoolRoles'
+                  - 'cognito-identity:GetOpenIdTokenForDeveloperIdentity'
+                  - 'cognito-identity:ListIdentities'
+                  - 'cognito-identity:LookupDeveloperIdentity'
+                  - 'cognito-identity:MergeDeveloperIdentities'
+                  - 'cognito-identity:UnlikeDeveloperIdentity'
+                  - 'cognito-identity:UpdateIdentityPool'
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${IdentityPool}'
+    # Creates a role that allows Cognito to send SNS messages
+  SNSRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "cognito-idp.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "CognitoSNSPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "sns:publish"
+                Resource: "*"
+  CognitoESAccessRole:
+    Type: 'AWS::IAM::Role'
+    DeletionPolicy: Retain
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonESCognitoAccess
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'es.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+  IdentityPoolRoleMapping:
+    DeletionPolicy: Retain
+    Type: 'AWS::Cognito::IdentityPoolRoleAttachment'
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+        unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  AdminUser:
+    Type: 'AWS::Cognito::UserPoolUser'
+    DeletionPolicy: Retain
+    Properties:
+      DesiredDeliveryMediums:
+        - 'EMAIL'
+      UserAttributes:
+        - Name: email
+          Value: !Ref CognitoAdminEmail
+      Username: !Ref CognitoAdminEmail
+      UserPoolId: !Ref UserPool
+  SetupESCognito:
+    Type: 'Custom::SetupESCognito'
+    Version: 1.0
+    Properties:
+      ServiceToken: !GetAtt LambdaESCognito.Arn
+      Domain: !Ref DOMAINNAME
+      CognitoDomain: !Sub ${DOMAINNAME}-${AWS::AccountId}
+      UserPoolId: !Ref UserPool
+      IdentityPoolId: !Ref IdentityPool
+      RoleArn: !GetAtt CognitoESAccessRole.Arn
+  LambdaESCognito:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: Centralized Logging - Lambda function to enable cognito authentication for kibana
+      Environment:
+        Variables:
+          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+      Handler: index.handler
+      Runtime: nodejs10.x
+      Timeout: 300
+      Role: !GetAtt LambdaESCognitoRole.Arn
+      Code:
+        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
+        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "clog-auth.zip"]]
+  LambdaESCognitoRole:
+    Type: AWS::IAM::Role
+    DependsOn: ElasticsearchAWSLogs
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+            - es:UpdateElasticsearchDomainConfig
+            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${DOMAINNAME}'
+          - Effect: Allow
+            Action:
+            - cognito-idp:CreateUserPoolDomain
+            - cognito-idp:DeleteUserPoolDomain
+            Resource: !GetAtt UserPool.Arn
+          - Effect: Allow
+            Action:
+            - iam:PassRole
+            Resource: !GetAtt CognitoESAccessRole.Arn
+  LoggingMasterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+              - Ref: AWS::AccountId
+              - !If [ProdAccount, !Ref "AWS::AccountId", !Ref ProdAccount]
+              - !If [TestAccount, !Ref "AWS::AccountId", !Ref TestAccount]
+              - !If [DevAccount, !Ref "AWS::AccountId", !Ref DevAccount]
+              #Fn::If:
+              #  - SingleAccnt
+              #  - Ref: AWS::AccountId
+              #  - Ref: SpokeAccounts
+            Service: lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+  LoggingMasterPolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub logging-master-${AWS::Region}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - es:ESHttpPost
+          Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
+      Roles:
+      - !Ref LoggingMasterRole
+  ElasticsearchAWSLogs:
+    Type: AWS::Elasticsearch::Domain
+    DeletionPolicy: Retain
+    Properties:
+      DomainName: !Ref DOMAINNAME
+      ElasticsearchVersion: '6.7'
+      EncryptionAtRestOptions:
+        Enabled: true
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: true
+        InstanceCount: !FindInMap [NodeCount, elasticsearch, !Ref ClusterSize]
+        ZoneAwarenessEnabled: true
+        InstanceType: !FindInMap [InstanceSizing, elasticsearch, !Ref ClusterSize]
+        DedicatedMasterType: !FindInMap [MasterSizing, elasticsearch, !Ref ClusterSize]
+        DedicatedMasterCount: 3
+      SnapshotOptions:
+        AutomatedSnapshotStartHour: 1
+      AccessPolicies:
+        Version: 2012-10-17
+        Statement:
+        - Action: 'es:ESHttpPost'
+          Principal:
+            AWS:
+              - !If [ProdAccount, !Ref "AWS::AccountId", !Ref ProdAccount]
+              - !If [TestAccount, !Ref "AWS::AccountId", !Ref TestAccount]
+              - !If [DevAccount, !Ref "AWS::AccountId", !Ref DevAccount]
+          Effect: Allow
+          Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
+        - Action: 'es:*'
+          Principal:
+            AWS: !Sub ${LoggingMasterRole.Arn}
+          Effect: Allow
+          Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
+        - Action: 'es:*'
+          Principal:
+            AWS: !Sub
+              - arn:aws:sts::${AWS::AccountId}:assumed-role/${AuthRole}/CognitoIdentityCredentials
+              - { AuthRole: !Ref CognitoAuthorizedRole }
+          Effect: Allow
+          Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${DOMAINNAME}/*'
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: 'true'
+        indices.fielddata.cache.size: '40'
+  Topic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: 'Centralized Logging CloudWatch alarms notification topic'
+      Subscription:
+      - Endpoint: !Ref DomainAdminEmail
+        Protocol: email
+  TopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Id: Id1
+        Version: '2012-10-17'
+        Statement:
+        - Sid: Sid1
+          Effect: Allow
+          Principal:
+            AWS: !Sub '${AWS::AccountId}'
+          Action: 'sns:Publish'
+          Resource: '*'
+      Topics:
+      - !Ref Topic
+  TopicEndpointSubscription:
+    DependsOn: TopicPolicy
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      Endpoint: !Ref DomainAdminEmail
+      Protocol: email
+      TopicArn: !Ref Topic
+  StatusYellowAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Replica shards for at least one index are not allocated to nodes in a cluster.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'ClusterStatus.yellow'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+  StatusRedAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Primary and replica shards of at least one index are not allocated to nodes in a cluster.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'ClusterStatus.red'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+  CPUUtilizationTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Average CPU utilization over last 45 minutes too high.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 3
+      MetricName: 'CPUUtilization'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 900
+      Statistic: Average
+      Threshold: 80
+  MasterCPUUtilizationTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Average CPU utilization over last 45 minutes too high.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 3
+      MetricName: 'MasterCPUUtilization'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 900
+      Statistic: Average
+      Threshold: 50
+  FreeStorageSpaceTooLowAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Cluster has less than 2GB of storage space.'
+      ComparisonOperator: LessThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'FreeStorageSpace'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 60
+      Statistic: Minimum
+      Threshold: 2000
+  IndexWritesBlockedTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Cluster is blocking incoming write requests.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'ClusterIndexWritesBlocked'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 300
+      Statistic: Maximum
+      Threshold: 1
+  JVMMemoryPressureTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Average JVM memory pressure over last 15 minutes too high.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'JVMMemoryPressure'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 900
+      Statistic: Average
+      Threshold: 80
+  MasterJVMMemoryPressureTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Average JVM memory pressure over last 15 minutes too high.'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'MasterJVMMemoryPressure'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 900
+      Statistic: Average
+      Threshold: 50
+  MasterNotReachableFromNodeAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'Master node stopped or not reachable. Usually the result of a network connectivity issue or AWS dependency problem.'
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'MasterReachableFromNode'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 60
+      Statistic: Minimum
+      Threshold: 1
+  AutomatedSnapshotFailureTooHighAlarm:
+    DependsOn: TopicEndpointSubscription
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+      - !Ref Topic
+      AlarmDescription: 'No automated snapshot was taken for the domain in the previous 36 hours (created by marbot).'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ClientId
+        Value: !Ref 'AWS::AccountId'
+      - Name: DomainName
+        Value: !Ref DOMAINNAME
+      EvaluationPeriods: 1
+      MetricName: 'AutomatedSnapshotFailure'
+      Namespace: 'AWS/ES'
+      OKActions:
+      - !Ref Topic
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BucketName
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:GetBucketAcl
+          Resource: !Sub arn:${AWS::Partition}:s3:::${BucketName}
+        - Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:PutObject
+          Resource:
+              - Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:s3:::'
+                  - Ref: BucketName
+                  - "/AWSLogs/"
+                  - Ref: AWS::AccountId
+                  - "/*"
+              - Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:s3:::'
+                  - Ref: BucketName
+                  - "/AWSLogs/"
+                  # Not sure if this is the best way, but use current account  if not additional accounts not specified.
+                  - !If [ProdAccount, !Ref "AWS::AccountId", !Ref ProdAccount]
+                  - "/*"
+              - Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:s3:::'
+                  - Ref: BucketName
+                  - "/AWSLogs/"
+                  - !If [TestAccount, !Ref "AWS::AccountId", !Ref TestAccount]
+                  - "/*"
+              - Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:s3:::'
+                  - Ref: BucketName
+                  - "/AWSLogs/"
+                  - !If [DevAccount, !Ref "AWS::AccountId", !Ref DevAccount]
+                  - "/*"
+          Condition:
+            StringEquals:
+              s3:x-amz-acl: bucket-owner-full-control
+  CloudWatchLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: CentralCloudWatchLogGroupPCI
+      RetentionInDays: 365
+  CloudWatchLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "cloudtrail.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "CloudTrail_CloudWatchLogs_Role"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "logs:CreateLogStream"
+                Resource: !Join [ '', [ !GetAtt CloudWatchLogGroup.Arn, '*' ] ]
+              -
+                Effect: "Allow"
+                Action: "logs:PutLogEvents"
+                Resource: !Join [ '', [ !GetAtt CloudWatchLogGroup.Arn, '*' ] ]
+  CloudTrailTrail:
+    Type: "AWS::CloudTrail::Trail"
+    DependsOn:
+      - S3BucketPolicy
+    Properties:
+      CloudWatchLogsLogGroupArn: !GetAtt CloudWatchLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudWatchLogsRole.Arn
+      EnableLogFileValidation: True
+      IncludeGlobalServiceEvents: True
+      IsLogging: True
+      IsMultiRegionTrail: True
+      S3BucketName: !Ref BucketName
+      Tags:
+        -
+          Key: Name
+          Value: !Sub ${AWS::StackName}
+      TrailName: !Sub ${AWS::StackName}
+  #
+  # Log Streamer
+  # [LogStreamerRole, LogStreamer, LogStreamerInvokePermission, DemoStack]
+  #
+  LogStreamerRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub logstreamer-${AWS::Region}
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+            - Effect: Allow
+              Action:
+              - es:ESHttpPost
+              Resource: !Sub arn:${AWS::Partition}:es:${AWS::Region}:${AWS::AccountId}:domain/*
+            - Effect: Allow
+              Action:
+              - sts:AssumeRole
+              Resource: !Sub ${LoggingMasterRole.Arn}
+  LogStreamer:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Centralized Logging - Lambda function to stream logs on ES Domain
+      Environment:
+        Variables:
+          endpoint: !Sub ${ElasticsearchAWSLogs.DomainEndpoint}
+      Handler: index.handler
+      Role: !Sub ${LogStreamerRole.Arn}
+      Code:
+        S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/logstreamer/index.zip
+      Runtime: nodejs10.x
+      Timeout: 300
+  LogStreamerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Sub ${LogStreamer}
+      Action: lambda:InvokeFunction
+      Principal: !Sub logs.${AWS::Region}.amazonaws.com
+      SourceAccount: !Sub ${AWS::AccountId}
+  CreateUniqueID:
+    Type: Custom::LoadLambda
+    Properties:
+      ServiceToken: !GetAtt LambdaESCognito.Arn
+      Resource: UUID
+  CentralLoggingBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Prefix: ""
+          Status: Enabled
+          ExpirationInDays: 2555
+          Transition:
+            TransitionInDays: 90
+            StorageClass:
+              !FindInMap
+                - RegionServiceSupport
+                - !Ref AWS::Region
+                - Glacier
+      VersioningConfiguration:
+        Status: Enabled
+  SubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn:
+      - CloudWatchLogGroup
+      - LogStreamer
+    Properties:
+      LogGroupName: CentralCloudWatchLogGroupPCI
+      FilterPattern: ''
+      DestinationArn: !Sub ${LogStreamer.Arn}
+  IAMPolicyChangesMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.eventName=DeleteGroupPolicy) ||
+          ($.eventName=DeleteRolePolicy) ||
+          ($.eventName=DeleteUserPolicy) ||
+          ($.eventName=PutGroupPolicy) ||
+          ($.eventName=PutRolePolicy) ||
+          ($.eventName=PutUserPolicy) ||
+          ($.eventName=CreatePolicy) ||
+          ($.eventName=DeletePolicy) ||
+          ($.eventName=CreatePolicyVersion) ||
+          ($.eventName=DeletePolicyVersion) ||
+          ($.eventName=AttachRolePolicy) ||
+          ($.eventName=DetachRolePolicy) ||
+          ($.eventName=AttachUserPolicy) ||
+          ($.eventName=DetachUserPolicy) ||
+          ($.eventName=AttachGroupPolicy) ||
+          ($.eventName=DetachGroupPolicy)
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: IAMPolicyEventCount
+        MetricValue: '1'
+  NetworkAclChangesMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.eventName = CreateNetworkAcl) ||
+          ($.eventName = CreateNetworkAclEntry) ||
+          ($.eventName = DeleteNetworkAcl) ||
+          ($.eventName = DeleteNetworkAclEntry) ||
+          ($.eventName = ReplaceNetworkAclEntry) ||
+          ($.eventName = ReplaceNetworkAclAssociation)
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: NetworkAclEventCount
+        MetricValue: '1'
+  NetworkAclChangesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: TopicEndpointSubscription
+    Properties:
+      AlarmDescription: Alarms when an API call is made to create, update or delete
+        a Network ACL.
+      AlarmActions:
+      - !Ref Topic
+      MetricName: NetworkAclEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  SecurityGroupChangesMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.eventName = AuthorizeSecurityGroupIngress) ||
+          ($.eventName = AuthorizeSecurityGroupEgress) ||
+          ($.eventName = RevokeSecurityGroupIngress) ||
+          ($.eventName = RevokeSecurityGroupEgress) ||
+          ($.eventName = CreateSecurityGroup) ||
+          ($.eventName = DeleteSecurityGroup)
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: SecurityGroupEventCount
+        MetricValue: '1'
+  SecurityGroupChangesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - NetworkAclChangesAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: Alarms when an API call is made to create, update or delete
+        a Security Group.
+      AlarmActions:
+      - !Ref Topic
+      MetricName: SecurityGroupEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  IAMRootActivity:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.userIdentity.type = "Root") &&
+          ($.userIdentity.invokedBy NOT EXISTS) &&
+          ($.eventType != "AwsServiceEvent")
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: RootUserPolicyEventCount
+        MetricValue: '1'
+  RootActivityAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - SecurityGroupChangesAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: Root user activity detected!
+      AlarmActions:
+      - !Ref Topic
+      MetricName: RootUserPolicyEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  UnauthorizedAttempts:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.errorCode=AccessDenied) ||
+          ($.errorCode=UnauthorizedOperation) ||
+          ($.eventName = ConsoleLogin) && ($.errorMessage = "Failed authentication")
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: UnauthorizedAttemptCount
+        MetricValue: '1'
+  UnauthorizedAttemptAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - RootActivityAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: Multiple unauthorized actions or logins attempted!
+      AlarmActions:
+      - !Ref Topic
+      MetricName: UnauthorizedAttemptCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 5
+      OKActions:
+      - !Ref Topic
+  IAMPolicyChangesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - UnauthorizedAttemptAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: IAM Configuration changes detected!
+      AlarmActions:
+      - !Ref Topic
+      MetricName: IAMPolicyEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  IAMCreateAccessKeyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - IAMPolicyChangesAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: 'Warning: New IAM access key was created. Please be sure this
+        action was neccessary.'
+      AlarmActions:
+      - !Ref Topic
+      MetricName: NewAccessKeyCreated
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  IAMCreateAccessKey:
+    Type: AWS::Logs::MetricFilter
+    DependsOn: IAMCreateAccessKeyAlarm
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.eventName=CreateAccessKey)
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: NewAccessKeyCreated
+        MetricValue: '1'
+  CloudTrailChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - IAMCreateAccessKeyAlarm
+      - TopicEndpointSubscription
+    Properties:
+      AlarmDescription: 'Warning: Changes to CloudTrail log configuration detected
+        in this account'
+      AlarmActions:
+      - !Ref Topic
+      MetricName: CloudTrailChangeCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      OKActions:
+      - !Ref Topic
+  CloudTrailChange:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: |-
+        {
+          ($.eventSource = cloudtrail.amazonaws.com) &&
+          (
+            ($.eventName != Describe*) &&
+            ($.eventName != Get*) &&
+            ($.eventName != Lookup*) &&
+            ($.eventName != List*)
+          )
+        }
+      MetricTransformations:
+      - MetricNamespace: CloudTrailMetrics
+        MetricName: CloudTrailChangeCount
+        MetricValue: '1'
+Outputs:
+  DomainEndpoint:
+    Description: ES domain endpoint URL
+    Value: !Sub https://${ElasticsearchAWSLogs.DomainEndpoint}
+  KibanaLoginURL:
+    Description: Kibana login URL
+    Value: !Sub https://${ElasticsearchAWSLogs.DomainEndpoint}/_plugin/kibana/
+  MasterRole:
+    Description: IAM role for ES cross account access
+    Value: !Sub ${LoggingMasterRole.Arn}
+  LambdaArn:
+    Description: Lambda function to index logs on ES Domain
+    Value: !Sub ${LogStreamer.Arn}
+  ClusterSize:
+    Description: Cluster size for the deployed ES Domain
+    Value: !Sub ${ClusterSize}
+  CentralLogBucket:
+    Description: "Central log bucket"
+    Value: !Ref BucketName
+    Export:
+     Name: CentralLogBucketName1
